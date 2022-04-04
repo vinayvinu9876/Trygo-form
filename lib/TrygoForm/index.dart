@@ -7,7 +7,8 @@ import 'package:http/http.dart' as http;
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 
-String host = "https://trygo-server.herokuapp.com/payOrder/";
+String host = "https://trygo-server.herokuapp.com";
+//String host = "http://localhost:3000";
 
 class TrygoForm extends StatefulWidget {
   const TrygoForm({Key? key}) : super(key: key);
@@ -16,14 +17,109 @@ class TrygoForm extends StatefulWidget {
 }
 
 class _TrygoForm extends State<TrygoForm> {
-  String? firstName, lastName, phone, email;
+  String? firstName, lastName, phone, email, otp;
   bool isLoading = false;
   String? errMessage;
+  bool otpSent = false;
 
   void setLoading(bool val) {
     setState(() {
       isLoading = val;
     });
+  }
+
+  void setOTPSent(bool val) {
+    setState(() {
+      otpSent = val;
+    });
+  }
+
+  void verifyOTP() async {
+    if (otp == null || otp!.isEmpty) {
+      setErrorMessage("Phone is not valid");
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage(null);
+
+    Map<String, dynamic> data = {"phone": phone, "otp": otp};
+
+    String verifyOTPURL = "$host/verifyOTP";
+
+    Uri uri = Uri.parse(verifyOTPURL);
+
+    try {
+      var response = await http.post(uri, body: data);
+
+      if (response.statusCode == 200) {
+        Map<String, dynamic> data = jsonDecode(response.body);
+
+        if (data["status"] == "failure") {
+          setLoading(false);
+          setErrorMessage(data["message"]);
+          return;
+        } else {
+          setLoading(false);
+          payNow();
+          return;
+        }
+      }
+
+      setLoading(false);
+      setErrorMessage("OTP request Failed ${response.body}");
+      return;
+    } catch (e) {
+      setErrorMessage(e.toString());
+      setLoading(false);
+    }
+  }
+
+  void requestOTP() async {
+    if (phone == null || phone!.isEmpty) {
+      setErrorMessage("Phone is not valid");
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage(null);
+    Map<String, dynamic> data = {
+      "phone": phone,
+    };
+
+    String requestOTPURL = "$host/sendOTP/";
+
+    print('url = $requestOTPURL');
+
+    Uri uri = Uri.parse(requestOTPURL);
+
+    try {
+      var response = await http.post(uri, body: data);
+
+      if (response.statusCode == 200) {
+        Map<String, dynamic> data = jsonDecode(response.body);
+
+        if (data["status"] == "failure") {
+          setLoading(false);
+          setOTPSent(false);
+          setErrorMessage(data["message"]);
+          return;
+        } else {
+          setLoading(false);
+          setOTPSent(true);
+          return;
+        }
+      }
+
+      setLoading(false);
+      setOTPSent(false);
+      setErrorMessage("OTP request Failed ${response.body}");
+      return;
+    } catch (e) {
+      setErrorMessage(e.toString());
+      setLoading(false);
+      setOTPSent(false);
+    }
   }
 
   void payNow() async {
@@ -54,7 +150,9 @@ class _TrygoForm extends State<TrygoForm> {
       "customer_email": email
     };
 
-    Uri url = Uri.parse(host);
+    String payOrderUrl = "$host/payOrder";
+
+    Uri url = Uri.parse(payOrderUrl);
 
     try {
       var response = await http.post(url, body: data);
@@ -93,6 +191,9 @@ class _TrygoForm extends State<TrygoForm> {
         case "email":
           email = value;
           break;
+        case "otp":
+          otp = value;
+          break;
       }
     });
   }
@@ -104,7 +205,7 @@ class _TrygoForm extends State<TrygoForm> {
   }
 
   void onBackPress() {
-    html.window.open("https://www.trygoservice.com/home/", '_self');
+    html.window.open("https://www.trygoservice.com/", '_self');
   }
 
   @override
@@ -139,7 +240,7 @@ class _TrygoForm extends State<TrygoForm> {
                         fontWeight: FontWeight.bold,
                         color: Colors.black)),
                 const SizedBox(height: 20),
-                const Text("Register with Trigo now",
+                const Text("Register with Trygo now",
                     style: TextStyle(fontSize: 18, color: Colors.black))
               ],
             ),
@@ -165,22 +266,23 @@ class _TrygoForm extends State<TrygoForm> {
                           );
                         },
                       ),
-                      nameInput(),
-                      const SizedBox(height: 30),
-                      phoneInput(),
-                      const SizedBox(height: 30),
-                      emailInput(),
-                      const SizedBox(height: 30),
+                      otpSent ? const SizedBox() : nameInput(),
+                      SizedBox(height: otpSent ? 0 : 30),
+                      otpSent ? const SizedBox() : phoneInput(),
+                      SizedBox(height: otpSent ? 0 : 30),
+                      otpSent ? const SizedBox() : emailInput(),
+                      SizedBox(height: otpSent ? 0 : 30),
+                      otpSent ? otpInput() : const SizedBox(),
+                      otpSent
+                          ? const SizedBox(height: 30)
+                          : const SizedBox(height: 0),
                       isLoading
                           ? const CircularProgressIndicator(color: Colors.green)
                           : submitButton(),
                     ])),
-            Builder(builder: (context) {
-              if (deviceType == DeviceScreenType.mobile) {
-                return Column(children: [const SizedBox(height: 40), footer()]);
-              }
-              return Container();
-            })
+            deviceType == DeviceScreenType.mobile
+                ? Column(children: [const SizedBox(height: 40), footer()])
+                : Container()
           ],
         ),
       ),
@@ -190,7 +292,12 @@ class _TrygoForm extends State<TrygoForm> {
   Widget submitButton() {
     return InkWell(
         onTap: () {
-          payNow();
+          if (!otpSent) {
+            requestOTP();
+            return;
+          } else {
+            verifyOTP();
+          }
         },
         child: Container(
           height: 50,
@@ -302,6 +409,30 @@ class _TrygoForm extends State<TrygoForm> {
               filled: true,
               labelText: "Phone",
               hintText: "Ex:9111922284",
+              labelStyle: TextStyle(fontSize: 16, color: Colors.black)),
+        ));
+  }
+
+  Widget otpInput() {
+    var deviceType = getDeviceType(MediaQuery.of(context).size);
+    return SizedBox(
+        width: deviceType == DeviceScreenType.mobile ? 300 : 620,
+        child: TextField(
+          onChanged: (txt) {
+            setValue("otp", txt);
+          },
+          keyboardType: TextInputType.number,
+          inputFormatters: <TextInputFormatter>[
+            FilteringTextInputFormatter.digitsOnly
+          ],
+          maxLength: 4,
+          decoration: const InputDecoration(
+              border: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.black)),
+              fillColor: Colors.white,
+              filled: true,
+              labelText: "OTP",
+              hintText: "Ex: XXXX",
               labelStyle: TextStyle(fontSize: 16, color: Colors.black)),
         ));
   }
