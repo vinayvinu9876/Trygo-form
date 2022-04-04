@@ -103,6 +103,10 @@ class _TrygoForm extends State<TrygoForm> {
     });
   }
 
+  void onBackPress() {
+    html.window.open("https://www.trygoservice.com/home/", '_self');
+  }
+
   @override
   Widget build(BuildContext context) {
     var deviceType = getDeviceType(MediaQuery.of(context).size);
@@ -221,10 +225,14 @@ class _TrygoForm extends State<TrygoForm> {
     var deviceType = getDeviceType(MediaQuery.of(context).size);
     return AppBar(
       backgroundColor: Colors.green,
-      leading: const Icon(
-        Icons.arrow_back,
-        color: Colors.white,
-      ),
+      leading: InkWell(
+          onTap: () {
+            onBackPress();
+          },
+          child: const Icon(
+            Icons.arrow_back,
+            color: Colors.white,
+          )),
       actions: (deviceType == DeviceScreenType.mobile)
           ? null
           : [
