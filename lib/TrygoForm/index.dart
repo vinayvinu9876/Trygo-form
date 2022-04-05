@@ -6,6 +6,7 @@ import 'package:responsive_builder/responsive_builder.dart';
 import 'package:http/http.dart' as http;
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
+import 'dart:js' as js;
 
 String host = "https://trygo-server.herokuapp.com";
 //String host = "http://localhost:3000";
@@ -318,8 +319,24 @@ class _TrygoForm extends State<TrygoForm> {
                               const SizedBox(
                                 width: 10,
                               ),
-                              const Text(
-                                  "I Accept terms and conditions of TryGo India",
+                              const Text("I Accept",
+                                  style: TextStyle(
+                                      color: Colors.black, fontSize: 14)),
+                              const SizedBox(width: 2),
+                              InkWell(
+                                  onTap: () {
+                                    js.context.callMethod('open', [
+                                      'https://www.trygoservice.com/terms-conditions/'
+                                    ]);
+                                  },
+                                  child: const Text("terms and conditions",
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color:
+                                              Color.fromARGB(255, 96, 14, 197),
+                                          fontSize: 14))),
+                              const SizedBox(width: 5),
+                              const Text("of TryGo India",
                                   style: TextStyle(
                                       color: Colors.black, fontSize: 14)),
                             ],
