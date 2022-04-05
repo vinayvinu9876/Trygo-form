@@ -18,6 +18,7 @@ class TrygoForm extends StatefulWidget {
 
 class _TrygoForm extends State<TrygoForm> {
   String? firstName, lastName, phone, email, otp;
+  bool accepted = false;
   bool isLoading = false;
   String? errMessage;
   bool otpSent = false;
@@ -76,6 +77,10 @@ class _TrygoForm extends State<TrygoForm> {
   }
 
   void requestOTP() async {
+    if (!accepted) {
+      setErrorMessage("Please Accept terms and conditions");
+      return;
+    }
     if (phone == null || phone!.isEmpty) {
       setErrorMessage("Phone is not valid");
       return;
@@ -123,6 +128,10 @@ class _TrygoForm extends State<TrygoForm> {
   }
 
   void payNow() async {
+    if (!accepted) {
+      setErrorMessage("Please Accept terms and conditions");
+      return;
+    }
     if (firstName == null || firstName!.isEmpty) {
       setErrorMessage("First Name cannot be empty");
       return;
@@ -274,6 +283,48 @@ class _TrygoForm extends State<TrygoForm> {
                       SizedBox(height: otpSent ? 0 : 30),
                       otpSent ? otpInput() : const SizedBox(),
                       otpSent
+                          ? const SizedBox(height: 0)
+                          : const SizedBox(height: 10),
+                      Container(
+                          margin: const EdgeInsets.only(bottom: 30),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      accepted = !accepted;
+                                    });
+                                  },
+                                  child: Container(
+                                      height: 20,
+                                      width: 20,
+                                      decoration: BoxDecoration(
+                                          color: accepted
+                                              ? Colors.green
+                                              : Colors.white,
+                                          border: accepted
+                                              ? null
+                                              : Border.all(color: Colors.black),
+                                          borderRadius: const BorderRadius.all(
+                                              Radius.circular(5))),
+                                      child: Visibility(
+                                          visible: accepted,
+                                          child: const Center(
+                                              child: Icon(Icons.done,
+                                                  size: 16,
+                                                  color: Colors.white))))),
+                              const SizedBox(
+                                width: 10,
+                              ),
+                              const Text(
+                                  "I Accept terms and conditions of TryGo India",
+                                  style: TextStyle(
+                                      color: Colors.black, fontSize: 14)),
+                            ],
+                          )),
+                      otpSent
                           ? const SizedBox(height: 30)
                           : const SizedBox(height: 0),
                       isLoading
@@ -292,12 +343,13 @@ class _TrygoForm extends State<TrygoForm> {
   Widget submitButton() {
     return InkWell(
         onTap: () {
-          if (!otpSent) {
+          /*if (!otpSent) {
             requestOTP();
             return;
           } else {
             verifyOTP();
-          }
+          }*/
+          payNow();
         },
         child: Container(
           height: 50,
@@ -318,7 +370,7 @@ class _TrygoForm extends State<TrygoForm> {
 
   Widget footer() {
     return Container(
-      height: 100,
+      height: 80,
       color: Colors.black,
       padding: const EdgeInsets.all(20),
       child: const Center(
